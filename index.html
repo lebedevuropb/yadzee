@@ -19,7 +19,7 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    .top-actions { display:flex; justify-content:flex-end; align-items:center; gap: 10px; margin: 8px 0 14px; }
+    .top-actions { display:flex; justify-content:space-between; align-items:center; gap: 10px; margin: 8px 0 14px; }
     .top-actions .btn { padding: 8px 16px; font-size: 0.98em; }
 
     .dice-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 18px;}
@@ -40,7 +40,8 @@
       .score-table { font-size: 0.95em;}
       .dice { width: 44px; height: 44px; font-size: 1.8em;}
       .tab-btn { padding: 8px 12px; font-size: 0.95em;}
-      .top-actions { justify-content:center; }
+      .top-actions { flex-direction: column; gap:8px; }
+      .top-actions .right { width:100%; display:flex; justify-content:center; }
     }
     /* modal */
     #name-modal {position:fixed;top:0;left:0;width:100%;height:100%;background:#000b;display:flex;align-items:center;justify-content:center;z-index:9999;}
@@ -68,9 +69,12 @@
       <button class="tab-btn" onclick="showTab('records')">Рекорды</button>
     </div>
 
-    <!-- Кнопка сохранения — вынесена вправо, всегда под рукой -->
     <div class="top-actions">
-      <button id="save-btn" class="btn">💾 Сохранить результат</button>
+      <div class="left"></div>
+      <div class="right">
+        <button id="save-btn" class="btn">💾 Сохранить результат</button>
+        <button id="records-refresh" class="btn">🔄 Обновить рекорды</button>
+      </div>
     </div>
 
     <div id="game" class="tab-content active">
@@ -99,22 +103,17 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
 <script>
-// ---------- Tabs ----------
 function showTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
   if(tab === 'game') document.querySelector('.tab-btn').classList.add('active');
   else document.querySelectorAll('.tab-btn')[1].classList.add('active');
   document.getElementById(tab).classList.add('active');
-  if (tab === 'records') drawLeaderboard();
+  if (tab === 'records') ensureLeaderboardSubscribed();
 }
 
-// ---------- Game logic ----------
 const upperFields = ["1", "2", "3", "4", "5", "6"];
-const lowerFields = [
-  "Пара", "Две пары", "Сет", "Каре", "Фулл хаус",
-  "Малый стрит", "Большой стрит", "Ядзи", "Шанс"
-];
+const lowerFields = [ "Пара", "Две пары", "Сет", "Каре", "Фулл хаус", "Малый стрит", "Большой стрит", "Ядзи", "Шанс" ];
 const allFields = [...upperFields, ...lowerFields];
 
 let scoreTable = {};
@@ -138,24 +137,14 @@ function randomDice() { return Math.floor(Math.random()*6)+1; }
 function diceEmoji(val) { return ['⚀','⚁','⚂','⚃','⚄','⚅'][val-1]; }
 
 function drawDiceRow() {
-  const dr = document.getElementById("dice-row");
-  dr.innerHTML = '';
+  const dr = document.getElementById("dice-row"); dr.innerHTML = '';
   for(let i=0; i<5; ++i) {
     const d = document.createElement('div');
     d.className = 'dice' + (diceKeep[i] ? ' selected' : '');
     d.innerHTML = diceEmoji(dice[i]);
-    d.onclick = () => {
-      if (rollsLeft < 3 && rollsLeft > 0) {
-        diceKeep[i] = !diceKeep[i];
-        drawDiceRow();
-      }
-    }
+    d.onclick = () => { if (rollsLeft < 3 && rollsLeft > 0) { diceKeep[i] = !diceKeep[i]; drawDiceRow(); } }
     dr.appendChild(d);
   }
-}
-function rollDice() {
-  for(let i=0; i<5; ++i) if (!diceKeep[i]) dice[i] = randomDice();
-  drawDiceRow();
 }
 function animateRoll(cb) {
   let times = 10;
@@ -165,18 +154,14 @@ function animateRoll(cb) {
     if (--times == 0) { clearInterval(interval); cb && cb(); }
   }, 60);
 }
-function countDice(arr) {
-  let c = {}; for(let i=1;i<=6;i++)c[i]=0; for(let d of arr)c[d]++; return c;
-}
+function countDice(arr) { let c = {}; for(let i=1;i<=6;i++)c[i]=0; for(let d of arr)c[d]++; return c; }
 function possibleScores(dice, table) {
-  const d = countDice(dice);
-  let res = {};
+  const d = countDice(dice); let res = {};
   for(let f of upperFields) if(table[f] === null) res[f] = d[+f]*(+f);
   if(table["Пара"] === null) { res["Пара"] = 0; for(let i=6;i>=1;i--) if(d[i]>=2){ res["Пара"] = dice.reduce((a,b)=>a+b,0); break; } }
   if(table["Две пары"] === null) { let pairs = 0; for(let i=1;i<=6;i++) if(d[i]>=2) pairs++; res["Две пары"] = pairs >= 2 ? dice.reduce((a,b)=>a+b,0) : 0; }
   if(table["Сет"] === null) { res["Сет"] = 0; for(let i=6;i>=1;i--) if(d[i]>=3){ res["Сет"] = dice.reduce((a,b)=>a+b,0); break; } }
   if(table["Каре"] === null) { res["Каре"] = 0; for(let i=6;i>=1;i--) if(d[i]>=4){ res["Каре"] = dice.reduce((a,b)=>a+b,0); break; } }
-  iftable_FH=false;
   if(table["Фулл хаус"] === null) { let three=0, pair=0; for(let i=6;i>=1;i--){ if(d[i]==3) three=i; else if(d[i]==2) pair=i; } res["Фулл хаус"] = (three && pair) ? 25 : 0; }
   if(table["Малый стрит"] === null) { const u=[...new Set(dice)].sort((a,b)=>a-b); let has=[[1,2,3,4],[2,3,4,5],[3,4,5,6]].some(seq=>seq.every(x=>u.includes(x))); res["Малый стрит"] = has ? 30 : 0; }
   if(table["Большой стрит"] === null) { let has=[1,2,3,4,5].every(x=>dice.includes(x)) || [2,3,4,5,6].every(x=>dice.includes(x)); res["Большой стрит"] = has ? 40 : 0; }
@@ -300,7 +285,7 @@ async function showFinal() {
   ${totalScore>=777 ? "🎉 <b>ПОБЕДА!</b> 🎉" : "😢 Не хватило очков до 777.<br>Попробуй ещё раз!"}
   <br><br><b>Не забудь нажать «Сохранить результат» (кнопка сверху справа).</b>
   <br><br><button class="btn" onclick="restartGame()">Сыграть снова</button></div>`;
-  drawLeaderboard();
+  ensureLeaderboardSubscribed();
 }
 
 window.restartGame = function() { round = 1; roundScoreTables = [{}, {}, {}]; startRound(); }
@@ -344,21 +329,17 @@ function showToast(text) {
 
 async function saveScoreToFirebase(name, score) {
   const payload = { name, score, ts: Date.now() };
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      console.log("saveScore attempt", attempt, payload);
-      await db.ref('scores').push(payload);
-      console.log("saved");
-      return true;
-    } catch (e) {
-      console.error("saveScore error", e);
-      await new Promise(r => setTimeout(r, 800));
-    }
+  try {
+    console.log("saveScore", payload);
+    await db.ref('scores').push(payload);
+    showToast("Результат сохранён!");
+  } catch (e) {
+    console.error("saveScore error", e);
+    showToast("Не удалось сохранить. Проверь сеть и правила БД.");
   }
-  return false;
 }
 
-// Кнопка "Сохранить результат" (вверху справа)
+// Кнопка "Сохранить результат"
 document.getElementById('save-btn').addEventListener('click', async () => {
   let name = playerName;
   if (!name) {
@@ -369,37 +350,39 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   }
   const current = getCurrentTotal();
   if (current <= 0) { showToast("Сначала наиграй очки :)"); return; }
-  const ok = await saveScoreToFirebase(name, current);
-  if (ok) {
-    showToast("Результат сохранён!");
-    drawLeaderboard();
-  } else {
-    showToast("Не удалось сохранить. Проверь сеть и правила БД.");
-  }
+  await saveScoreToFirebase(name, current);
 });
 
-// Лидерборд (загрузка по запросу)
-async function drawLeaderboard() {
-  const wrap = document.getElementById('records-wrap');
-  wrap.innerHTML = "Загрузка...";
-  try {
-    const snap = await db.ref('scores').get();
+// Лидерборд — живая подписка + ручное обновление
+let subscribed = false;
+function ensureLeaderboardSubscribed() {
+  if (subscribed) return;
+  subscribed = true;
+  const ref = db.ref('scores');
+  document.getElementById('records-wrap').innerHTML = "Загрузка...";
+  ref.on('value', (snap) => {
     const list = [];
     if (snap.exists()) snap.forEach(ch => list.push(ch.val()));
-    list.sort((a,b)=>b.score - a.score || a.ts - b.ts);
-    const top = list.slice(0, 20);
-    if (top.length === 0) { wrap.innerHTML = "Ещё нет результатов. Сыграй первым!"; return; }
-    let html = "<table class='score-table'><tr><th>#</th><th>Имя</th><th>Очки</th><th>Дата</th></tr>";
-    top.forEach((r,i)=>{
-      const date = new Date(r.ts).toLocaleString();
-      html += `<tr><td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td><td>${date}</td></tr>`;
-    });
-    html += "</table>";
-    wrap.innerHTML = html;
-  } catch (e) {
-    console.error('drawLeaderboard error:', e);
-    wrap.innerHTML = "Не удалось загрузить рекорды.";
-  }
+    renderLeaderboard(list);
+  });
+}
+document.getElementById('records-refresh').addEventListener('click', async ()=>{
+  const snap = await db.ref('scores').get();
+  const list = []; if (snap.exists()) snap.forEach(ch => list.push(ch.val()));
+  renderLeaderboard(list);
+});
+function renderLeaderboard(list) {
+  list.sort((a,b)=> b.score - a.score || a.ts - b.ts);
+  const top = list.slice(0, 20);
+  const wrap = document.getElementById('records-wrap');
+  if (top.length === 0) { wrap.innerHTML = "Ещё нет результатов. Сыграй первым!"; return; }
+  let html = "<table class='score-table'><tr><th>#</th><th>Имя</th><th>Очки</th><th>Дата</th></tr>";
+  top.forEach((r,i)=>{
+    const date = new Date(r.ts).toLocaleString();
+    html += `<tr><td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td><td>${date}</td></tr>`;
+  });
+  html += "</table>";
+  wrap.innerHTML = html;
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
