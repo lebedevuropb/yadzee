@@ -1,70 +1,78 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Ядзи (Yahtzee) - Web</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body { font-family: sans-serif; background: #2c3e50; color: #fff; margin: 0; padding: 0; }
-    .container { max-width: 800px; margin: 0 auto; padding: 30px; }
+    .container { max-width: 900px; margin: 0 auto; padding: 26px; }
     h1 { text-align: center; margin-bottom: 12px;}
-    .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 18px; }
-    .tab-btn { background: #fff; color: #2980b9; border: none; padding: 10px 32px;
-      border-radius: 7px 7px 0 0; cursor: pointer; font-size: 1.1em;
-      border-bottom: 2px solid #eee; margin-bottom: -2px; transition: background .2s, color .2s; }
+    .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 8px; }
+    .tab-btn {
+      background: #fff; color: #2980b9; border: none; padding: 10px 32px;
+      border-radius: 7px 7px 0 0; cursor: pointer; font-size: 1.05em;
+      border-bottom: 2px solid #eee; margin-bottom: -2px;
+      transition: background 0.2s, color 0.2s;
+    }
     .tab-btn.active { background: #2980b9; color: #fff; border-bottom: 2px solid #2980b9; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
+    .top-actions { display:flex; justify-content:flex-end; align-items:center; gap: 10px; margin: 8px 0 14px; }
+    .top-actions .btn { padding: 8px 16px; font-size: 0.98em; }
+
     .dice-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 18px;}
-    .dice { width: 60px; height: 60px; background: #fff; color: #222; border-radius: 14px; box-shadow: 0 2px 8px #0004;
-      display: flex; align-items: center; justify-content: center; font-size: 2.7rem; cursor: pointer; border: 3px solid transparent; transition: border .2s;}
+    .dice { width: 60px; height: 60px; background: #fff; color: #222; border-radius: 14px; box-shadow: 0 2px 8px #0004; display: flex; align-items: center; justify-content: center; font-size: 2.7rem; cursor: pointer; border: 3px solid transparent; transition: border 0.2s;}
     .dice.selected { border: 3px solid #27ae60;}
-    .score-table { margin: 16px auto; max-width: 600px; border-collapse: collapse; background:#fff; color:#000;}
+    .score-table { margin: 16px auto; max-width: 720px; border-collapse: collapse; background:#fff; color:#000;}
     .score-table th, .score-table td { border: 1px solid #666; padding: 7px 14px; text-align: center;}
     .score-table th { background: #34495e; color:#fff;}
     .score-table .available { cursor: pointer; background: #23aaff44;}
-    .score-table .used { background: #424242;}
     .score-table .bonus { background: #39b54a99; color:#fff;}
-    .btn { background: #2980b9; color: #fff; border: none; padding: 12px 32px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; transition: background .2s;}
+    .btn { background: #2980b9; color: #fff; border: none; padding: 12px 32px; border-radius: 8px; cursor: pointer; font-size: 1.05rem; transition: background 0.2s;}
     .btn[disabled] { background: #666; cursor: not-allowed;}
     .turn-panel { text-align: center; margin: 13px 0 23px;}
-    .msg { text-align: center; margin-bottom: 18px; font-size: 1.1rem;}
-    .hide { display: none; }
-    .finish { background: #3c990f; color: #fff; padding: 24px 12px; border-radius: 16px; text-align: center; font-size: 1.5rem; margin: 20px;}
-
-    /* зелёная подсветка суммы верхнего блока при бонусе */
-    .upper-bonus { background:#2ecc40 !important; color:#fff !important; }
-
+    .msg { text-align: center; margin-bottom: 18px; font-size: 1.05rem;}
+    .hide { display: none; } .finish { background: #3c990f; color: #fff; padding: 24px 12px; border-radius: 16px; text-align: center; font-size: 1.5rem; margin: 20px;}
     @media (max-width: 700px) {
-      .container { padding: 6px; }
+      .container { padding: 10px; }
       .score-table { font-size: 0.95em;}
-      .dice { width: 40px; height: 40px; font-size: 1.6em;}
+      .dice { width: 44px; height: 44px; font-size: 1.8em;}
       .tab-btn { padding: 8px 12px; font-size: 0.95em;}
+      .top-actions { justify-content:center; }
     }
-
-    /* модалка имени */
+    /* modal */
     #name-modal {position:fixed;top:0;left:0;width:100%;height:100%;background:#000b;display:flex;align-items:center;justify-content:center;z-index:9999;}
     #name-modal .card {background:#fff;color:#000;padding:20px 30px;border-radius:12px;text-align:center;max-width: 90%;}
     #name-modal input {padding:10px;width:240px;font-size:1rem;}
+    /* зелёная подсветка суммы верхнего блока при бонусе */
+    .upper-bonus { background:#2ecc40 !important; color:#fff !important; }
+
+    /* toast */
+    #toast {position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); background: #000c; color: #fff; padding: 10px 14px; border-radius: 8px; display:none;}
   </style>
 </head>
 <body>
-  <!-- Имя игрока -->
   <div id="name-modal">
     <div class="card">
       <h2>Введите имя</h2>
-      <input type="text" id="player-name" placeholder="Ваше имя" />
+      <input type="text" id="player-name" placeholder="Ваше имя">
       <br><br>
-      <button id="start-btn" class="btn">Начать игру</button>
+      <button onclick="startGameWithName()" class="btn">Начать игру</button>
     </div>
   </div>
 
   <div class="container">
     <h1>Ядзи (Yahtzee) Web</h1>
+
     <div class="tabs">
       <button class="tab-btn active" onclick="showTab('game')">Игра</button>
       <button class="tab-btn" onclick="showTab('records')">Рекорды</button>
+    </div>
+
+    <div class="top-actions">
+      <button id="save-btn" class="btn">💾 Сохранить результат</button>
     </div>
 
     <div id="game" class="tab-content active">
@@ -74,10 +82,6 @@
         <button id="roll-btn" class="btn">Бросить кубики</button>
         <span id="rolls-info" style="margin-left:18px;"></span>
       </div>
-
-      <!-- Живой общий счёт -->
-      <div id="live-total" class="turn-panel"></div>
-
       <div id="possible-moves" class="msg"></div>
       <table class="score-table" id="score-table"></table>
       <div id="game-msg" class="msg"></div>
@@ -90,250 +94,137 @@
     </div>
   </div>
 
-  <!-- Firebase compat SDKs (работают без сборки) -->
+  <div id="toast"></div>
+
+  <!-- Firebase compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
 <script>
-/* ---------- Tabs ---------- */
+// ---------- Tabs ----------
 function showTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
   if(tab === 'game') document.querySelector('.tab-btn').classList.add('active');
   else document.querySelectorAll('.tab-btn')[1].classList.add('active');
   document.getElementById(tab).classList.add('active');
-  if (tab === 'records') drawLeaderboard(); // подгружаем при открытии
+  if (tab === 'records') ensureLeaderboardSubscribed();
 }
 
-/* ---------- Game logic ---------- */
-const upperFields = ["1","2","3","4","5","6"];
+// ---------- Game logic (коротко, без изменений игрового подсчёта) ----------
+const upperFields = ["1", "2", "3", "4", "5", "6"];
 const lowerFields = ["Пара","Две пары","Сет","Каре","Фулл хаус","Малый стрит","Большой стрит","Ядзи","Шанс"];
 const allFields = [...upperFields, ...lowerFields];
-
-let scoreTable = {};
-let round = 1, totalScore = 0, rollsLeft = 3;
-let dice = [1,1,1,1,1];
-let diceKeep = [false,false,false,false,false];
-let roundScoreTables = [{}, {}, {}];
-
-let playerName = "";
-
-function startGameWithName() {
-  const nameInput = document.getElementById("player-name").value.trim();
-  if (!nameInput) { alert("Введите имя!"); return; }
-  playerName = nameInput;
-  document.getElementById("name-modal").style.display = "none";
-  startRound();
-}
-
-function resetScoreTable(){ scoreTable = {}; for (let f of allFields) scoreTable[f] = null; }
+let scoreTable = {}; let round = 1, rollsLeft = 3;
+let dice = [1,1,1,1,1]; let diceKeep = [false,false,false,false,false];
+let roundScoreTables = [{}, {}, {}]; let playerName = "";
+function startGameWithName(){ const v=document.getElementById('player-name').value.trim(); if(!v){alert('Введите имя!');return;} playerName=v; document.getElementById('name-modal').style.display='none'; startRound(); }
+function resetScoreTable(){ scoreTable={}; for(let f of allFields) scoreTable[f]=null; }
 function randomDice(){ return Math.floor(Math.random()*6)+1; }
 function diceEmoji(v){ return ['⚀','⚁','⚂','⚃','⚄','⚅'][v-1]; }
-
-function drawDiceRow(){
-  const dr = document.getElementById("dice-row");
-  dr.innerHTML = '';
-  for(let i=0;i<5;i++){
-    const d = document.createElement('div');
-    d.className = 'dice' + (diceKeep[i] ? ' selected' : '');
-    d.innerHTML = diceEmoji(dice[i]);
-    d.onclick = () => {
-      if (rollsLeft < 3 && rollsLeft > 0) { diceKeep[i] = !diceKeep[i]; drawDiceRow(); }
-    };
-    dr.appendChild(d);
-  }
+function drawDiceRow(){ const dr=document.getElementById('dice-row'); dr.innerHTML=''; for(let i=0;i<5;i++){ const d=document.createElement('div'); d.className='dice'+(diceKeep[i]?' selected':''); d.innerHTML=diceEmoji(dice[i]); d.onclick=()=>{ if(rollsLeft<3&&rollsLeft>0){ diceKeep[i]=!diceKeep[i]; drawDiceRow(); } }; dr.appendChild(d);} }
+function animateRoll(cb){ let t=10; const int=setInterval(()=>{ for(let i=0;i<5;i++) if(!diceKeep[i]) dice[i]=randomDice(); drawDiceRow(); if(--t==0){ clearInterval(int); cb&&cb(); } },60); }
+function countDice(a){ const c={1:0,2:0,3:0,4:0,5:0,6:0}; for(const d of a) c[d]++; return c; }
+function possibleScores(d, table){ const c=countDice(d); const r={}; for(const f of upperFields) if(table[f]===null) r[f]=c[+f]*(+f);
+  if(table["Пара"]===null){ r["Пара"]=0; for(let i=6;i>=1;i--) if(c[i]>=2){ r["Пара"]=d.reduce((a,b)=>a+b,0); break;} }
+  if(table["Две пары"]===null){ let p=0; for(let i=1;i<=6;i++) if(c[i]>=2) p++; r["Две пары"]=p>=2?d.reduce((a,b)=>a+b,0):0; }
+  if(table["Сет"]===null){ r["Сет"]=0; for(let i=6;i>=1;i--) if(c[i]>=3){ r["Сет"]=d.reduce((a,b)=>a+b,0); break;} }
+  if(table["Каре"]===null){ r["Каре"]=0; for(let i=6;i>=1;i--) if(c[i]>=4){ r["Каре"]=d.reduce((a,b)=>a+b,0); break;} }
+  if(table["Фулл хаус"]===null){ let three=0,pair=0; for(let i=6;i>=1;i--){ if(c[i]==3) three=i; else if(c[i]==2) pair=i;} r["Фулл хаус"]=(three&&pair)?25:0; }
+  if(table["Малый стрит"]===null){ const u=[...new Set(d)].sort((a,b)=>a-b); const has=[[1,2,3,4],[2,3,4,5],[3,4,5,6]].some(seq=>seq.every(x=>u.includes(x))); r["Малый стрит"]=has?30:0; }
+  if(table["Большой стрит"]===null){ const has=[1,2,3,4,5].every(x=>d.includes(x))||[2,3,4,5,6].every(x=>d.includes(x)); r["Большой стрит"]=has?40:0; }
+  if(table["Ядзи"]===null){ r["Ядзи"]=Object.values(c).includes(5)?50:0; }
+  if(table["Шанс"]===null){ r["Шанс"]=d.reduce((a,b)=>a+b,0); } return r;
 }
-function rollDice(){ for(let i=0;i<5;i++) if(!diceKeep[i]) dice[i]=randomDice(); drawDiceRow(); }
-function animateRoll(cb){
-  let t = 10;
-  const it = setInterval(()=>{
-    for(let i=0;i<5;i++) if(!diceKeep[i]) dice[i]=randomDice();
-    drawDiceRow();
-    if(--t===0){ clearInterval(it); cb&&cb(); }
-  },60);
-}
-function countDice(arr){ const c={1:0,2:0,3:0,4:0,5:0,6:0}; for(const d of arr) c[d]++; return c; }
-
-function possibleScores(dice, table){
-  const d = countDice(dice);
-  const res = {};
-  for(const f of upperFields) if(table[f]===null) res[f] = d[+f]*(+f);
-  if(table["Пара"]===null){ res["Пара"]=0; for(let i=6;i>=1;i--) if(d[i]>=2){res["Пара"]=dice.reduce((a,b)=>a+b,0);break;} }
-  if(table["Две пары"]===null){ let p=0; for(let i=1;i<=6;i++) if(d[i]>=2) p++; res["Две пары"]=p>=2?dice.reduce((a,b)=>a+b,0):0; }
-  if(table["Сет"]===null){ res["Сет"]=0; for(let i=6;i>=1;i--) if(d[i]>=3){res["Сет"]=dice.reduce((a,b)=>a+b,0);break;} }
-  if(table["Каре"]===null){ res["Каре"]=0; for(let i=6;i>=1;i--) if(d[i]>=4){res["Каре"]=dice.reduce((a,b)=>a+b,0);break;} }
-  if(table["Фулл хаус"]===null){ let three=0,pair=0; for(let i=6;i>=1;i--){ if(d[i]==3) three=i; else if(d[i]==2) pair=i; } res["Фулл хаус"]=(three&&pair)?25:0; }
-  if(table["Малый стрит"]===null){ const u=[...new Set(dice)].sort((a,b)=>a-b); const has=[[1,2,3,4],[2,3,4,5],[3,4,5,6]].some(s=>s.every(x=>u.includes(x))); res["Малый стрит"]=has?30:0; }
-  if(table["Большой стрит"]===null){ const has=[1,2,3,4,5].every(x=>dice.includes(x))||[2,3,4,5,6].every(x=>dice.includes(x)); res["Большой стрит"]=has?40:0; }
-  if(table["Ядзи"]===null){ res["Ядзи"]=Object.values(d).includes(5)?50:0; }
-  if(table["Шанс"]===null){ res["Шанс"]=dice.reduce((a,b)=>a+b,0); }
-  return res;
-}
-
-function calcRoundTotals(upperSums){
-  const totals=[];
-  for(let r=0;r<3;r++){
-    let sum=0; for(const f of allFields) sum += roundScoreTables[r][f] || 0;
-    if(upperSums[r] >= 63) sum += 35;
-    totals[r]=sum;
-  }
-  return totals;
-}
-
 function drawTable(){
-  const table = document.getElementById("score-table");
   let html = `<tr><th>Поле</th><th>Раунд 1</th><th>Раунд 2</th><th>Раунд 3</th></tr>`;
   html += `<tr><th colspan="4">Верхний блок</th></tr>`;
   const upperSums=[0,0,0];
-
   for(const f of upperFields){
-    html += `<tr><td>${f}</td>`;
+    html+=`<tr><td>${f}</td>`;
     for(let r=0;r<3;r++){
-      const val = roundScoreTables[r][f] ?? "";
-      if(val!=="") upperSums[r]+=val;
-      html += `<td${r+1===round?' style="background:#2ecc4022;"':''}>${val}</td>`;
+      const v=roundScoreTables[r][f]??"";
+      if(v!=="") upperSums[r]+=v;
+      html+=`<td${r+1===round?' style="background:#2ecc4022;"':''}>${v}</td>`;
     }
-    html += `</tr>`;
-    if(f==="6"){
-      html += `<tr>
+    html+='</tr>';
+    if(f==='6'){
+      // Сумма верхнего блока + подсветка ячейки, если бонус сработал
+      html+=`<tr>
         <td><b>Сумма верхнего блока</b></td>
         <td class="${upperSums[0] >= 63 ? 'upper-bonus' : ''}"><b>${upperSums[0]}</b></td>
         <td class="${upperSums[1] >= 63 ? 'upper-bonus' : ''}"><b>${upperSums[1]}</b></td>
         <td class="${upperSums[2] >= 63 ? 'upper-bonus' : ''}"><b>${upperSums[2]}</b></td>
       </tr>`;
-      html += `<tr>
+      // Бонус строка (зелёная строка, как на твоём скрине)
+      html+=`<tr>
         <td><b>Бонус (+35, если ≥63)</b></td>
-        <td class="bonus">${upperSums[0]>=63?35:""}</td>
-        <td class="bonus">${upperSums[1]>=63?35:""}</td>
-        <td class="bonus">${upperSums[2]>=63?35:""}</td>
+        <td class="bonus">${upperSums[0] >= 63 ? 35 : ''}</td>
+        <td class="bonus">${upperSums[1] >= 63 ? 35 : ''}</td>
+        <td class="bonus">${upperSums[2] >= 63 ? 35 : ''}</td>
       </tr>`;
-      let lowerSums=[0,0,0];
-      for(let r=0;r<3;r++) for(const ff of lowerFields) lowerSums[r]+=roundScoreTables[r][ff] ?? 0;
-      html += `<tr>
+      // Сумма нижнего блока
+      const lower=[0,0,0];
+      for(let r=0;r<3;r++) for(const ff of lowerFields) lower[r]+=roundScoreTables[r][ff]??0;
+      html+=`<tr>
         <td><b>Сумма нижнего блока</b></td>
-        <td><b>${lowerSums[0]}</b></td>
-        <td><b>${lowerSums[1]}</b></td>
-        <td><b>${lowerSums[2]}</b></td>
+        <td><b>${lower[0]}</b></td>
+        <td><b>${lower[1]}</b></td>
+        <td><b>${lower[2]}</b></td>
       </tr>`;
     }
   }
-
+  // Нижний блок
   html += `<tr><th colspan="4">Нижний блок</th></tr>`;
   for(const f of lowerFields){
-    html += `<tr><td>${f}</td>`;
+    html+=`<tr><td>${f}</td>`;
     for(let r=0;r<3;r++){
-      const val = roundScoreTables[r][f] ?? "";
-      html += `<td${r+1===round?' style="background:#2ecc4022;"':''}>${val}</td>`;
+      const v=roundScoreTables[r][f]??"";
+      html+=`<td${r+1===round?' style="background:#2ecc4022;"':''}>${v}</td>`;
     }
-    html += `</tr>`;
+    html+='</tr>';
   }
-
+  // Итого за раунд
   html += `<tr><td><b>Итого за раунд</b></td>`;
-  const roundTotals = calcRoundTotals(upperSums);
-  for(let r=0;r<3;r++) html += `<td><b>${roundTotals[r] || ""}</b></td>`;
-  html += `</tr>`;
-
-  const totalAll = roundTotals.reduce((a,b)=>a+b,0);
+  const totals=[];
+  for(let r=0;r<3;r++){
+    let s=0; for(const f of allFields) s+=roundScoreTables[r][f]||0;
+    if(upperSums[r] >= 63) s+=35;
+    totals[r]=s;
+    html+=`<td><b>${s||""}</b></td>`;
+  }
+  html+='</tr>';
+  // Общий счёт (реал-тайм), без "осталось до победы"
+  const totalAll = totals.reduce((a,b)=>a+b,0);
   html += `<tr>
     <td colspan="4" style="text-align:right;">
       <b>Общий счёт: ${totalAll}</b>
-      &nbsp;&nbsp;
-      <span style="color:${777-totalAll<=0?'#39b54a':'#e74c3c'};">
-        ${777-totalAll>0 ? `Осталось до победы: ${777-totalAll}` : 'Победа!'}
-      </span>
     </td>
   </tr>`;
-  table.innerHTML = html;
-
-  // живой общий счёт над таблицей
-  const live = document.getElementById('live-total');
-  if (live) live.innerHTML = `Общий счёт (реал-тайм): <b>${totalAll}</b>`;
+  document.getElementById('score-table').innerHTML=html;
 }
-
-function showPossibleMoves(poss){
-  const arr = Object.entries(poss).filter(([k])=>scoreTable[k]===null);
-  if(arr.length===0) return "";
-  let html = "<b>Выбери куда записать:</b> ";
-  html += arr.map(([k,v])=>`<span class="available" onclick="chooseField('${k}')">${k} <b>(${v})</b></span>`).join(' | ');
-  document.getElementById("possible-moves").innerHTML = html;
+  html += `<tr><th colspan="4">Нижний блок</th></tr>`;
+  for(const f of lowerFields){ html+=`<tr><td>${f}</td>`; for(let r=0;r<3;r++){ const v=roundScoreTables[r][f]??""; html+=`<td${r+1===round?' style="background:#2ecc4022;"':''}>${v}</td>`;} html+='</tr>'; }
+  html += `<tr><td><b>Итого за раунд</b></td>`;
+  const totals=[]; for(let r=0;r<3;r++){ let s=0; for(const f of allFields) s+=roundScoreTables[r][f]||0; if(upperSums[r]>=63) s+=35; totals[r]=s; html+=`<td><b>${s||""}</b></td>`; } html+='</tr>';
+  document.getElementById('score-table').innerHTML=html;
 }
-function hidePossibleMoves(){ document.getElementById("possible-moves").innerHTML=""; }
+function showPossibleMoves(poss){ const arr=Object.entries(poss).filter(([k,v])=>scoreTable[k]===null); if(!arr.length) return ""; let html="<b>Выбери куда записать:</b> "; html+=arr.map(([k,v])=>`<span class="available" onclick="chooseField('${k}')">${k} <b>(${v})</b></span>`).join(' | '); document.getElementById('possible-moves').innerHTML=html; }
+function hidePossibleMoves(){ document.getElementById('possible-moves').innerHTML=""; }
+function chooseField(field){ const poss=possibleScores(dice,scoreTable); if(scoreTable[field]!==null) return; scoreTable[field]=poss[field]; roundScoreTables[round-1][field]=poss[field]; drawTable(); hidePossibleMoves(); const finished=allFields.every(f=>scoreTable[f]!==null); rollsLeft=3; diceKeep=[false,false,false,false,false]; document.getElementById('roll-btn').disabled=false; document.getElementById('rolls-info').innerHTML=""; document.getElementById('game-msg').innerHTML=""; drawDiceRow(); if(finished){ document.getElementById('game-msg').innerHTML=`<b>Раунд ${round} завершён!</b>`; setTimeout(()=>{ if(round<3){ round++; startRound(); } else { showFinal(); } },1200);} }
+function startRound(){ resetScoreTable(); rollsLeft=3; dice=[1,1,1,1,1]; diceKeep=[false,false,false,false,false]; document.getElementById('final-block').classList.add('hide'); document.getElementById('round-info').innerHTML=`<b>Раунд ${round} из 3</b>`; document.getElementById('game-msg').innerHTML=""; drawDiceRow(); drawTable(); hidePossibleMoves(); document.getElementById('roll-btn').disabled=false; document.getElementById('rolls-info').innerHTML='Бросков осталось: <b>3</b>'; }
+function getCurrentTotal(){ const upper=[0,0,0]; for(let r=0;r<3;r++) for(const f of upperFields) upper[r]+=roundScoreTables[r][f]??0; const totals=[]; for(let r=0;r<3;r++){ let s=0; for(const f of allFields) s+=roundScoreTables[r][f]||0; if(upper[r]>=63) s+=35; totals[r]=s;} return totals.reduce((a,b)=>a+b,0); }
+async function showFinal(){ const total=getCurrentTotal(); document.getElementById('final-block').classList.remove('hide'); document.getElementById('final-block').innerHTML=`<div>Ваш финальный счёт за 3 раунда: <b>${total}</b><br>${total>=777?"🎉 <b>ПОБЕДА!</b> 🎉":"😢 Не хватило очков до 777.<br>Попробуй ещё раз!"}<br><br><b>Не забудь нажать «Сохранить результат» (кнопка сверху справа).</b><br><br><button class="btn" onclick="restartGame()">Сыграть снова</button></div>`; ensureLeaderboardSubscribed(); }
+window.restartGame=function(){ round=1; roundScoreTables=[{},{},{}]; startRound(); }
+document.getElementById('roll-btn').onclick=function(){ if(rollsLeft>0){ document.getElementById('roll-btn').disabled=true; animateRoll(()=>{ rollsLeft--; document.getElementById('roll-btn').disabled=rollsLeft==0; document.getElementById('rolls-info').innerHTML=`Бросков осталось: <b>${rollsLeft}</b>`; if(rollsLeft==0){ showPossibleMoves(possibleScores(dice,scoreTable)); document.getElementById('game-msg').innerHTML='Выбери поле для записи результата.'; } else { document.getElementById('game-msg').innerHTML='Выдели кубики, которые не хочешь перекидывать, затем снова бросай.'; } }); } };
 
-function chooseField(field){
-  const poss = possibleScores(dice, scoreTable);
-  if(scoreTable[field]!==null) return;
-  scoreTable[field]=poss[field];
-  roundScoreTables[round-1][field] = poss[field];
-  drawTable(); hidePossibleMoves();
-  const finished = allFields.every(f=>scoreTable[f]!==null);
-  rollsLeft=3; diceKeep=[false,false,false,false,false];
-  document.getElementById("roll-btn").disabled=false;
-  document.getElementById("rolls-info").innerHTML="";
-  document.getElementById("game-msg").innerHTML="";
-  drawDiceRow();
-  if(finished){
-    document.getElementById("game-msg").innerHTML = `<b>Раунд ${round} завершён!</b>`;
-    setTimeout(()=>{ if(round<3){ round++; startRound(); } else { showFinal(); } }, 1200);
-  }
-}
-function startRound(){
-  resetScoreTable(); rollsLeft=3; dice=[1,1,1,1,1]; diceKeep=[false,false,false,false,false];
-  document.getElementById("final-block").classList.add("hide");
-  document.getElementById("round-info").innerHTML = `<b>Раунд ${round} из 3</b>`;
-  document.getElementById("game-msg").innerHTML = "";
-  drawDiceRow(); drawTable(); hidePossibleMoves();
-  document.getElementById("roll-btn").disabled=false;
-  document.getElementById("rolls-info").innerHTML="Бросков осталось: <b>3</b>";
-}
-async function showFinal(){
-  const upperSums=[0,0,0];
-  for (let r=0;r<3;r++) for (const f of upperFields) upperSums[r]+=roundScoreTables[r][f] ?? 0;
-  const roundTotals = calcRoundTotals(upperSums);
-  totalScore = roundTotals.reduce((a,b)=>a+b,0);
-
-  await saveScore(playerName, totalScore);
-  await drawLeaderboard();
-
-  document.getElementById("final-block").classList.remove("hide");
-  document.getElementById("final-block").innerHTML =
-    `<div>Ваш финальный счёт за 3 раунда: <b>${totalScore}</b><br>
-      ${totalScore>=777 ? "🎉 <b>ПОБЕДА!</b> 🎉" : "😢 Не хватило очков до 777.<br>Попробуй ещё раз!"}
-      <br><br><button class="btn" onclick="restartGame()">Сыграть снова</button></div>`;
-}
-window.restartGame = function(){ round=1; roundScoreTables=[{},{},{}]; startRound(); }
-
-/* Кнопки (навешиваем после загрузки DOM) */
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('start-btn').addEventListener('click', startGameWithName);
-  document.getElementById('player-name').addEventListener('keydown', e => { if (e.key === 'Enter') startGameWithName(); });
-  document.getElementById('player-name').focus();
-
-  document.getElementById("roll-btn").onclick = function(){
-    if(rollsLeft>0){
-      document.getElementById("roll-btn").disabled=true;
-      animateRoll(()=>{
-        rollsLeft--;
-        document.getElementById("roll-btn").disabled = rollsLeft==0;
-        document.getElementById("rolls-info").innerHTML = `Бросков осталось: <b>${rollsLeft}</b>`;
-        if(rollsLeft==0){
-          const poss = possibleScores(dice, scoreTable);
-          showPossibleMoves(poss);
-          document.getElementById("game-msg").innerHTML="Выбери поле для записи результата.";
-        } else {
-          document.getElementById("game-msg").innerHTML="Выдели кубики, которые не хочешь перекидывать, затем снова бросай.";
-        }
-      });
-    }
-  };
-});
-
-/* ---------- Firebase (compat) ---------- */
+// ---------- Firebase setup (compat) ----------
 const firebaseConfig = {
   apiKey: "AIzaSyDJX6EdXi_24H80N0WPfdHjmMZ97xRjuQQ",
   authDomain: "yadzee-a6b2b.firebaseapp.com",
   databaseURL: "https://yadzee-a6b2b-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "yadzee-a6b2b",
-  storageBucket: "yadzee-a6b2b.firebasestorage.app",
+  storageBucket: "yadzee-a6b2b.appspot.com",
   messagingSenderId: "67079856385",
   appId: "1:67079856385:web:cbc043ecfa6081b9983b00",
   measurementId: "G-G3HHBM8BF1"
@@ -341,47 +232,65 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Сохранение с 2 попытками и логами
-async function saveScore(name, score){
-  const payload = { name, score, ts: Date.now() };
-  for (let attempt=1; attempt<=2; attempt++){
-    try {
-      console.log("saveScore attempt", attempt, payload);
-      await db.ref('scores').push(payload);
-      console.log("saved");
-      return true;
-    } catch(e){
-      console.error("saveScore error", e);
-      await new Promise(r=>setTimeout(r,800));
-    }
-  }
-  return false;
+function showToast(text){ const t=document.getElementById('toast'); t.textContent=text; t.style.display='block'; setTimeout(()=>t.style.display='none',1800); }
+
+async function saveScoreToFirebase(name, score){
+  const payload={ name, score, ts: Date.now() };
+  try { await db.ref('scores').push(payload); showToast('Результат сохранён!'); }
+  catch(e){ console.error('saveScore error', e); showToast('Не удалось сохранить. Проверь сеть и правила БД.'); }
 }
 
-// Таблица рекордов
-async function drawLeaderboard(){
+// Кнопка "Сохранить результат"
+document.getElementById('save-btn').addEventListener('click', async ()=>{
+  let name = playerName;
+  if (!name) { name = prompt('Введите имя игрока:'); if (!name) return; playerName = name; document.getElementById('name-modal').style.display='none'; }
+  const current = getCurrentTotal();
+  if (current <= 0) { showToast('Сначала наиграй очки :)'); return; }
+  await saveScoreToFirebase(name, current);
+});
+
+// ---------- Leaderboard: LIVE subscription (ключевое место) ----------
+let scoresSubscribed = false;
+function ensureLeaderboardSubscribed(){
+  if (scoresSubscribed) return;
+  scoresSubscribed = true;
+
+  // Берём последнюю сотню узлов, потом сами сортируем по score/ts
+  const ref = db.ref('scores').limitToLast(200);
   const wrap = document.getElementById('records-wrap');
-  wrap.innerHTML = "Загрузка...";
-  try{
-    const snap = await db.ref('scores').get();
+  wrap.innerHTML = 'Загрузка...';
+
+  ref.on('value', (snap) => {
     const list = [];
-    if (snap.exists()) snap.forEach(ch => list.push(ch.val()));
-    list.sort((a,b)=> b.score - a.score || a.ts - b.ts);
-    const top = list.slice(0,20);
-    if(top.length===0){ wrap.innerHTML="Ещё нет результатов. Сыграй первым!"; return; }
-    let html = "<table class='score-table'><tr><th>#</th><th>Имя</th><th>Очки</th><th>Дата</th></tr>";
-    top.forEach((r,i)=>{
-      const date = new Date(r.ts).toLocaleString();
-      html += `<tr><td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td><td>${date}</td></tr>`;
-    });
-    html += "</table>";
-    wrap.innerHTML = html;
-  }catch(e){
-    console.error('drawLeaderboard error:', e);
-    wrap.innerHTML = "Не удалось загрузить рекорды.";
-  }
+    if (snap && snap.exists()) {
+      snap.forEach((child) => {
+        list.push(child.val());
+      });
+    }
+    console.log('records loaded:', list.length);
+    // по убыванию очков, при равенстве — кто раньше записал, тот выше
+    list.sort((a,b) => (b.score|0) - (a.score|0) || (a.ts||0) - (b.ts||0));
+    renderLeaderboard(list.slice(0, 50));
+  }, (err)=>{
+    console.error('leaderboard error', err);
+    wrap.innerHTML = 'Ошибка загрузки рекордов: ' + err.message;
+  });
+}
+
+function renderLeaderboard(rows){
+  const wrap=document.getElementById('records-wrap');
+  if (!rows || rows.length===0){ wrap.innerHTML='Ещё нет результатов. Сыграй первым!'; return; }
+  let html = "<table class='score-table'><tr><th>#</th><th>Имя</th><th>Очки</th><th>Дата</th></tr>";
+  rows.forEach((r,i)=>{
+    const when = r.ts ? new Date(r.ts).toLocaleString() : '';
+    html += `<tr><td>${i+1}</td><td>${escapeHtml(r.name||'')}</td><td>${r.score||0}</td><td>${when}</td></tr>`;
+  });
+  html += "</table>";
+  wrap.innerHTML = html;
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+window.onload = () => { /* ждём ввод имени */ };
 </script>
 </body>
 </html>
