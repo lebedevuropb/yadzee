@@ -54,9 +54,9 @@
   <div id="name-modal">
     <div class="card">
       <h2>Введите имя</h2>
-      <input type="text" id="player-name" placeholder="Ваше имя">
+      <input type="text" id="player-name" placeholder="Ваше имя" />
       <br><br>
-      <button onclick="startGameWithName()" class="btn">Начать игру</button>
+      <button id="start-btn" class="btn">Начать игру</button>
     </div>
   </div>
 
@@ -228,5 +228,160 @@ function drawTable(){
     html += `</tr>`;
   }
 
-  html += `<tr><td><b>Итого за раунд</b>
+  html += `<tr><td><b>Итого за раунд</b></td>`;
+  const roundTotals = calcRoundTotals(upperSums);
+  for(let r=0;r<3;r++) html += `<td><b>${roundTotals[r] || ""}</b></td>`;
+  html += `</tr>`;
 
+  const totalAll = roundTotals.reduce((a,b)=>a+b,0);
+  html += `<tr>
+    <td colspan="4" style="text-align:right;">
+      <b>Общий счёт: ${totalAll}</b>
+      &nbsp;&nbsp;
+      <span style="color:${777-totalAll<=0?'#39b54a':'#e74c3c'};">
+        ${777-totalAll>0 ? `Осталось до победы: ${777-totalAll}` : 'Победа!'}
+      </span>
+    </td>
+  </tr>`;
+  table.innerHTML = html;
+
+  // живой общий счёт над таблицей
+  const live = document.getElementById('live-total');
+  if (live) live.innerHTML = `Общий счёт (реал-тайм): <b>${totalAll}</b>`;
+}
+
+function showPossibleMoves(poss){
+  const arr = Object.entries(poss).filter(([k])=>scoreTable[k]===null);
+  if(arr.length===0) return "";
+  let html = "<b>Выбери куда записать:</b> ";
+  html += arr.map(([k,v])=>`<span class="available" onclick="chooseField('${k}')">${k} <b>(${v})</b></span>`).join(' | ');
+  document.getElementById("possible-moves").innerHTML = html;
+}
+function hidePossibleMoves(){ document.getElementById("possible-moves").innerHTML=""; }
+
+function chooseField(field){
+  const poss = possibleScores(dice, scoreTable);
+  if(scoreTable[field]!==null) return;
+  scoreTable[field]=poss[field];
+  roundScoreTables[round-1][field] = poss[field];
+  drawTable(); hidePossibleMoves();
+  const finished = allFields.every(f=>scoreTable[f]!==null);
+  rollsLeft=3; diceKeep=[false,false,false,false,false];
+  document.getElementById("roll-btn").disabled=false;
+  document.getElementById("rolls-info").innerHTML="";
+  document.getElementById("game-msg").innerHTML="";
+  drawDiceRow();
+  if(finished){
+    document.getElementById("game-msg").innerHTML = `<b>Раунд ${round} завершён!</b>`;
+    setTimeout(()=>{ if(round<3){ round++; startRound(); } else { showFinal(); } }, 1200);
+  }
+}
+function startRound(){
+  resetScoreTable(); rollsLeft=3; dice=[1,1,1,1,1]; diceKeep=[false,false,false,false,false];
+  document.getElementById("final-block").classList.add("hide");
+  document.getElementById("round-info").innerHTML = `<b>Раунд ${round} из 3</b>`;
+  document.getElementById("game-msg").innerHTML = "";
+  drawDiceRow(); drawTable(); hidePossibleMoves();
+  document.getElementById("roll-btn").disabled=false;
+  document.getElementById("rolls-info").innerHTML="Бросков осталось: <b>3</b>";
+}
+async function showFinal(){
+  const upperSums=[0,0,0];
+  for (let r=0;r<3;r++) for (const f of upperFields) upperSums[r]+=roundScoreTables[r][f] ?? 0;
+  const roundTotals = calcRoundTotals(upperSums);
+  totalScore = roundTotals.reduce((a,b)=>a+b,0);
+
+  await saveScore(playerName, totalScore);
+  await drawLeaderboard();
+
+  document.getElementById("final-block").classList.remove("hide");
+  document.getElementById("final-block").innerHTML =
+    `<div>Ваш финальный счёт за 3 раунда: <b>${totalScore}</b><br>
+      ${totalScore>=777 ? "🎉 <b>ПОБЕДА!</b> 🎉" : "😢 Не хватило очков до 777.<br>Попробуй ещё раз!"}
+      <br><br><button class="btn" onclick="restartGame()">Сыграть снова</button></div>`;
+}
+window.restartGame = function(){ round=1; roundScoreTables=[{},{},{}]; startRound(); }
+
+/* Кнопки (навешиваем после загрузки DOM) */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('start-btn').addEventListener('click', startGameWithName);
+  document.getElementById('player-name').addEventListener('keydown', e => { if (e.key === 'Enter') startGameWithName(); });
+  document.getElementById('player-name').focus();
+
+  document.getElementById("roll-btn").onclick = function(){
+    if(rollsLeft>0){
+      document.getElementById("roll-btn").disabled=true;
+      animateRoll(()=>{
+        rollsLeft--;
+        document.getElementById("roll-btn").disabled = rollsLeft==0;
+        document.getElementById("rolls-info").innerHTML = `Бросков осталось: <b>${rollsLeft}</b>`;
+        if(rollsLeft==0){
+          const poss = possibleScores(dice, scoreTable);
+          showPossibleMoves(poss);
+          document.getElementById("game-msg").innerHTML="Выбери поле для записи результата.";
+        } else {
+          document.getElementById("game-msg").innerHTML="Выдели кубики, которые не хочешь перекидывать, затем снова бросай.";
+        }
+      });
+    }
+  };
+});
+
+/* ---------- Firebase (compat) ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyDJX6EdXi_24H80N0WPfdHjmMZ97xRjuQQ",
+  authDomain: "yadzee-a6b2b.firebaseapp.com",
+  databaseURL: "https://yadzee-a6b2b-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "yadzee-a6b2b",
+  storageBucket: "yadzee-a6b2b.firebasestorage.app",
+  messagingSenderId: "67079856385",
+  appId: "1:67079856385:web:cbc043ecfa6081b9983b00",
+  measurementId: "G-G3HHBM8BF1"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// Сохранение с 2 попытками и логами
+async function saveScore(name, score){
+  const payload = { name, score, ts: Date.now() };
+  for (let attempt=1; attempt<=2; attempt++){
+    try {
+      console.log("saveScore attempt", attempt, payload);
+      await db.ref('scores').push(payload);
+      console.log("saved");
+      return true;
+    } catch(e){
+      console.error("saveScore error", e);
+      await new Promise(r=>setTimeout(r,800));
+    }
+  }
+  return false;
+}
+
+// Таблица рекордов
+async function drawLeaderboard(){
+  const wrap = document.getElementById('records-wrap');
+  wrap.innerHTML = "Загрузка...";
+  try{
+    const snap = await db.ref('scores').get();
+    const list = [];
+    if (snap.exists()) snap.forEach(ch => list.push(ch.val()));
+    list.sort((a,b)=> b.score - a.score || a.ts - b.ts);
+    const top = list.slice(0,20);
+    if(top.length===0){ wrap.innerHTML="Ещё нет результатов. Сыграй первым!"; return; }
+    let html = "<table class='score-table'><tr><th>#</th><th>Имя</th><th>Очки</th><th>Дата</th></tr>";
+    top.forEach((r,i)=>{
+      const date = new Date(r.ts).toLocaleString();
+      html += `<tr><td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td><td>${date}</td></tr>`;
+    });
+    html += "</table>";
+    wrap.innerHTML = html;
+  }catch(e){
+    console.error('drawLeaderboard error:', e);
+    wrap.innerHTML = "Не удалось загрузить рекорды.";
+  }
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+</script>
+</body>
+</html>
