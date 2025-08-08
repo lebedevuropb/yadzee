@@ -6,12 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body { font-family: sans-serif; background: #2c3e50; color: #fff; margin: 0; padding: 0; }
-    .container { max-width: 800px; margin: 0 auto; padding: 30px; }
+    .container { max-width: 900px; margin: 0 auto; padding: 26px; }
     h1 { text-align: center; margin-bottom: 12px;}
-    .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 18px; }
+    .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 8px; }
     .tab-btn {
       background: #fff; color: #2980b9; border: none; padding: 10px 32px;
-      border-radius: 7px 7px 0 0; cursor: pointer; font-size: 1.1em;
+      border-radius: 7px 7px 0 0; cursor: pointer; font-size: 1.05em;
       border-bottom: 2px solid #eee; margin-bottom: -2px;
       transition: background 0.2s, color 0.2s;
     }
@@ -19,26 +19,28 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
+    .top-actions { display:flex; justify-content:flex-end; align-items:center; gap: 10px; margin: 8px 0 14px; }
+    .top-actions .btn { padding: 8px 16px; font-size: 0.98em; }
+
     .dice-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 18px;}
     .dice { width: 60px; height: 60px; background: #fff; color: #222; border-radius: 14px; box-shadow: 0 2px 8px #0004; display: flex; align-items: center; justify-content: center; font-size: 2.7rem; cursor: pointer; border: 3px solid transparent; transition: border 0.2s;}
     .dice.selected { border: 3px solid #27ae60;}
-    .score-table { margin: 16px auto; max-width: 600px; border-collapse: collapse; background:#fff; color:#000;}
+    .score-table { margin: 16px auto; max-width: 720px; border-collapse: collapse; background:#fff; color:#000;}
     .score-table th, .score-table td { border: 1px solid #666; padding: 7px 14px; text-align: center;}
     .score-table th { background: #34495e; color:#fff;}
     .score-table .available { cursor: pointer; background: #23aaff44;}
-    .score-table .used { background: #424242;}
     .score-table .bonus { background: #39b54a99; color:#fff;}
-    .btn { background: #2980b9; color: #fff; border: none; padding: 12px 32px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; transition: background 0.2s;}
+    .btn { background: #2980b9; color: #fff; border: none; padding: 12px 32px; border-radius: 8px; cursor: pointer; font-size: 1.05rem; transition: background 0.2s;}
     .btn[disabled] { background: #666; cursor: not-allowed;}
     .turn-panel { text-align: center; margin: 13px 0 23px;}
-    .msg { text-align: center; margin-bottom: 18px; font-size: 1.1rem;}
-    .hide { display: none; }
-    .finish { background: #3c990f; color: #fff; padding: 24px 12px; border-radius: 16px; text-align: center; font-size: 1.5rem; margin: 20px;}
+    .msg { text-align: center; margin-bottom: 18px; font-size: 1.05rem;}
+    .hide { display: none; } .finish { background: #3c990f; color: #fff; padding: 24px 12px; border-radius: 16px; text-align: center; font-size: 1.5rem; margin: 20px;}
     @media (max-width: 700px) {
-      .container { padding: 6px; }
+      .container { padding: 10px; }
       .score-table { font-size: 0.95em;}
-      .dice { width: 40px; height: 40px; font-size: 1.6em;}
+      .dice { width: 44px; height: 44px; font-size: 1.8em;}
       .tab-btn { padding: 8px 12px; font-size: 0.95em;}
+      .top-actions { justify-content:center; }
     }
     /* modal */
     #name-modal {position:fixed;top:0;left:0;width:100%;height:100%;background:#000b;display:flex;align-items:center;justify-content:center;z-index:9999;}
@@ -60,16 +62,22 @@
 
   <div class="container">
     <h1>Ядзи (Yahtzee) Web</h1>
+
     <div class="tabs">
       <button class="tab-btn active" onclick="showTab('game')">Игра</button>
       <button class="tab-btn" onclick="showTab('records')">Рекорды</button>
     </div>
+
+    <!-- Кнопка сохранения — вынесена вправо, всегда под рукой -->
+    <div class="top-actions">
+      <button id="save-btn" class="btn">💾 Сохранить результат</button>
+    </div>
+
     <div id="game" class="tab-content active">
       <div id="round-info" class="turn-panel"></div>
       <div id="dice-row" class="dice-row"></div>
       <div style="text-align:center">
         <button id="roll-btn" class="btn">Бросить кубики</button>
-        <button id="save-btn" class="btn" style="margin-left:10px;">💾 Сохранить результат</button>
         <span id="rolls-info" style="margin-left:18px;"></span>
       </div>
       <div id="possible-moves" class="msg"></div>
@@ -77,6 +85,7 @@
       <div id="game-msg" class="msg"></div>
       <div id="final-block" class="hide finish"></div>
     </div>
+
     <div id="records" class="tab-content">
       <h2 style="color:#2980b9;text-align:center;">🏆 Рекорды игроков</h2>
       <div id="records-wrap" class="msg">Загрузка...</div>
@@ -85,7 +94,7 @@
 
   <div id="toast"></div>
 
-  <!-- Firebase compat SDKs (работают без сборки) -->
+  <!-- Firebase compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
@@ -97,7 +106,7 @@ function showTab(tab) {
   if(tab === 'game') document.querySelector('.tab-btn').classList.add('active');
   else document.querySelectorAll('.tab-btn')[1].classList.add('active');
   document.getElementById(tab).classList.add('active');
-  if (tab === 'records') drawLeaderboard(); // подгружаем при открытии
+  if (tab === 'records') drawLeaderboard();
 }
 
 // ---------- Game logic ----------
@@ -167,6 +176,7 @@ function possibleScores(dice, table) {
   if(table["Две пары"] === null) { let pairs = 0; for(let i=1;i<=6;i++) if(d[i]>=2) pairs++; res["Две пары"] = pairs >= 2 ? dice.reduce((a,b)=>a+b,0) : 0; }
   if(table["Сет"] === null) { res["Сет"] = 0; for(let i=6;i>=1;i--) if(d[i]>=3){ res["Сет"] = dice.reduce((a,b)=>a+b,0); break; } }
   if(table["Каре"] === null) { res["Каре"] = 0; for(let i=6;i>=1;i--) if(d[i]>=4){ res["Каре"] = dice.reduce((a,b)=>a+b,0); break; } }
+  iftable_FH=false;
   if(table["Фулл хаус"] === null) { let three=0, pair=0; for(let i=6;i>=1;i--){ if(d[i]==3) three=i; else if(d[i]==2) pair=i; } res["Фулл хаус"] = (three && pair) ? 25 : 0; }
   if(table["Малый стрит"] === null) { const u=[...new Set(dice)].sort((a,b)=>a-b); let has=[[1,2,3,4],[2,3,4,5],[3,4,5,6]].some(seq=>seq.every(x=>u.includes(x))); res["Малый стрит"] = has ? 30 : 0; }
   if(table["Большой стрит"] === null) { let has=[1,2,3,4,5].every(x=>dice.includes(x)) || [2,3,4,5,6].every(x=>dice.includes(x)); res["Большой стрит"] = has ? 40 : 0; }
@@ -288,7 +298,7 @@ async function showFinal() {
   document.getElementById("final-block").classList.remove("hide");
   document.getElementById("final-block").innerHTML = `<div>Ваш финальный счёт за 3 раунда: <b>${totalScore}</b><br>
   ${totalScore>=777 ? "🎉 <b>ПОБЕДА!</b> 🎉" : "😢 Не хватило очков до 777.<br>Попробуй ещё раз!"}
-  <br><br><b>Не забудь нажать «Сохранить результат».</b>
+  <br><br><b>Не забудь нажать «Сохранить результат» (кнопка сверху справа).</b>
   <br><br><button class="btn" onclick="restartGame()">Сыграть снова</button></div>`;
   drawLeaderboard();
 }
@@ -312,13 +322,12 @@ document.getElementById("roll-btn").onclick = function() {
 };
 
 // ---------- Firebase setup (compat) ----------
-// ТВОЙ firebaseConfig (как ты присылал)
 const firebaseConfig = {
   apiKey: "AIzaSyDJX6EdXi_24H80N0WPfdHjmMZ97xRjuQQ",
   authDomain: "yadzee-a6b2b.firebaseapp.com",
   databaseURL: "https://yadzee-a6b2b-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "yadzee-a6b2b",
-  storageBucket: "yadzee-a6b2b.firebasestorage.app",
+  storageBucket: "yadzee-a6b2b.appspot.com",
   messagingSenderId: "67079856385",
   appId: "1:67079856385:web:cbc043ecfa6081b9983b00",
   measurementId: "G-G3HHBM8BF1"
@@ -337,19 +346,19 @@ async function saveScoreToFirebase(name, score) {
   const payload = { name, score, ts: Date.now() };
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      console.log("💾 saveScore attempt", attempt, payload);
+      console.log("saveScore attempt", attempt, payload);
       await db.ref('scores').push(payload);
-      console.log("✅ saved");
+      console.log("saved");
       return true;
     } catch (e) {
-      console.error("❌ saveScore error", e);
+      console.error("saveScore error", e);
       await new Promise(r => setTimeout(r, 800));
     }
   }
   return false;
 }
 
-// Кнопка "Сохранить результат" — доступна всегда
+// Кнопка "Сохранить результат" (вверху справа)
 document.getElementById('save-btn').addEventListener('click', async () => {
   let name = playerName;
   if (!name) {
@@ -359,6 +368,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     document.getElementById("name-modal").style.display = "none";
   }
   const current = getCurrentTotal();
+  if (current <= 0) { showToast("Сначала наиграй очки :)"); return; }
   const ok = await saveScoreToFirebase(name, current);
   if (ok) {
     showToast("Результат сохранён!");
@@ -368,16 +378,14 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   }
 });
 
-// Нарисовать таблицу рекордов
+// Лидерборд (загрузка по запросу)
 async function drawLeaderboard() {
   const wrap = document.getElementById('records-wrap');
   wrap.innerHTML = "Загрузка...";
   try {
     const snap = await db.ref('scores').get();
     const list = [];
-    if (snap.exists()) {
-      snap.forEach(ch => list.push(ch.val()));
-    }
+    if (snap.exists()) snap.forEach(ch => list.push(ch.val()));
     list.sort((a,b)=>b.score - a.score || a.ts - b.ts);
     const top = list.slice(0, 20);
     if (top.length === 0) { wrap.innerHTML = "Ещё нет результатов. Сыграй первым!"; return; }
