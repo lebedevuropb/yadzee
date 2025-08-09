@@ -70,8 +70,9 @@
     </div>
 
     <div class="top-actions">
-      <button id="save-btn" class="btn">💾 Сохранить результат</button>
-    </div>
+  <button id="save-btn" class="btn">💾 Сохранить результат</button>
+  <button id="reset-btn" class="btn">🔄 Новая игра</button>
+</div>
 
     <div id="game" class="tab-content active">
       <div id="round-info" class="turn-panel"></div>
@@ -300,6 +301,11 @@ function renderLeaderboard(rows){
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
 window.onload = () => { /* ждём ввод имени */ };
+  // Кнопка "Новая игра" — сбрасывает прогресс и стартует заново
+document.getElementById('reset-btn').addEventListener('click', () => {
+  if (!confirm('Начать новую игру? Текущий прогресс будет потерян.')) return;
+  restartGame(); // у тебя уже есть эта функция (round=1; startRound();)
+});
 </script>
 </body>
 </html>
