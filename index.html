@@ -135,7 +135,10 @@ function animateRoll(cb){ let t=10; const int=setInterval(()=>{ for(let i=0;i<5;
 function countDice(a){ const c={1:0,2:0,3:0,4:0,5:0,6:0}; for(const d of a) c[d]++; return c; }
 function possibleScores(d, table){ const c=countDice(d); const r={}; for(const f of upperFields) if(table[f]===null) r[f]=c[+f]*(+f);
   if(table["Пара"]===null){ r["Пара"]=0; for(let i=6;i>=1;i--) if(c[i]>=2){ r["Пара"]=d.reduce((a,b)=>a+b,0); break;} }
-  if(table["Две пары"] === null) res["Две пары"] = Object.values(d).reduce((p, c) => p + Math.floor(c / 2), 0) >= 2 ? dice.reduce((a, b) => a + b, 0) : 0;
+  if (table["Две пары"] === null) {
+  const pairCount = Object.values(d).reduce((sum, c) => sum + Math.floor(c / 2), 0);
+  res["Две пары"] = pairCount >= 2 ? dice.reduce((a, b) => a + b, 0) : 0;
+}
   if(table["Сет"]===null){ r["Сет"]=0; for(let i=6;i>=1;i--) if(c[i]>=3){ r["Сет"]=d.reduce((a,b)=>a+b,0); break;} }
   if(table["Каре"]===null){ r["Каре"]=0; for(let i=6;i>=1;i--) if(c[i]>=4){ r["Каре"]=d.reduce((a,b)=>a+b,0); break;} }
   if(table["Фулл хаус"]===null){ let three=0,pair=0; for(let i=6;i>=1;i--){ if(c[i]==3) three=i; else if(c[i]==2) pair=i;} r["Фулл хаус"]=(three&&pair)?25:0; }
