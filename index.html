@@ -134,8 +134,9 @@ function possibleScores(d, table){ const c=countDice(d); const r={}; for(const f
   if(table["Ядзи"]===null){ r["Ядзи"]=Object.values(c).includes(5)?50:0; }
   if(table["Шанс"]===null){ r["Шанс"]=d.reduce((a,b)=>a+b,0); } return r;
 }
-function drawTable(){
-  let   // Итого за раунд (как было: учитываем +35, если верхний блок ≥63)
+function drawTable()
+{
+// Итого за раунд (как было: учитываем +35, если верхний блок ≥63)
   html += `<tr><td><b>Итого за раунд</b></td>`;
   for (let r = 0; r < 3; r++) {
     let s = 0;
@@ -144,6 +145,18 @@ function drawTable(){
     html += `<td><b>${s || ""}</b></td>`;
   }
   html += `</tr>`;
+    // Сумма всего
+  const totalAll = [0];
+  for (let r = 0; r < 3; r++) {
+    let s = 0;
+    for (const f of allFields) s += roundScoreTables[r][f] || 0;
+    if (upperSums[r] >= 63) s += 35;
+    totalAll[0] += s;
+  }
+  html += `<tr>
+    <td><b>Сумма всего</b></td>
+    <td colspan="3"><b>${totalAll[0]}</b></td>
+  </tr>`;
 
   const upperSums = [0,0,0];
 
