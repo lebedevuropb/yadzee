@@ -133,19 +133,81 @@ function diceEmoji(v){ return ['⚀','⚁','⚂','⚃','⚄','⚅'][v-1]; }
 function drawDiceRow(){ const dr=document.getElementById('dice-row'); dr.innerHTML=''; for(let i=0;i<5;i++){ const d=document.createElement('div'); d.className='dice'+(diceKeep[i]?' selected':''); d.innerHTML=diceEmoji(dice[i]); d.onclick=()=>{ if(rollsLeft<3&&rollsLeft>0){ diceKeep[i]=!diceKeep[i]; drawDiceRow(); } }; dr.appendChild(d);} }
 function animateRoll(cb){ let t=10; const int=setInterval(()=>{ for(let i=0;i<5;i++) if(!diceKeep[i]) dice[i]=randomDice(); drawDiceRow(); if(--t==0){ clearInterval(int); cb&&cb(); } },60); }
 function countDice(a){ const c={1:0,2:0,3:0,4:0,5:0,6:0}; for(const d of a) c[d]++; return c; }
-function possibleScores(d, table){ const c=countDice(d); const r={}; for(const f of upperFields) if(table[f]===null) r[f]=c[+f]*(+f);
-  if(table["Пара"]===null){ r["Пара"]=0; for(let i=6;i>=1;i--) if(c[i]>=2){ r["Пара"]=d.reduce((a,b)=>a+b,0); break;} }
+function possibleScores(dice, table) {
+  const d = countDice(dice);
+  const res = {};
+
+  // Верхний блок
+  for (const f of upperFields) {
+    if (table[f] === null) res[f] = d[+f] * (+f);
+  }
+
+  // Пара
+  if (table["Пара"] === null) {
+    res["Пара"] = 0;
+    for (let i = 6; i >= 1; i--) {
+      if (d[i] >= 2) { res["Пара"] = dice.reduce((a,b)=>a+b,0); break; }
+    }
+  }
+
+  // Две пары — считаем пары как floor(count/2),
+  // чтобы каре и Ядзи тоже засчитывались как две пары
   if (table["Две пары"] === null) {
-  const pairCount = Object.values(d).reduce((sum, c) => sum + Math.floor(c / 2), 0);
-  res["Две пары"] = pairCount >= 2 ? dice.reduce((a, b) => a + b, 0) : 0;
-}
-  if(table["Сет"]===null){ r["Сет"]=0; for(let i=6;i>=1;i--) if(c[i]>=3){ r["Сет"]=d.reduce((a,b)=>a+b,0); break;} }
-  if(table["Каре"]===null){ r["Каре"]=0; for(let i=6;i>=1;i--) if(c[i]>=4){ r["Каре"]=d.reduce((a,b)=>a+b,0); break;} }
-  if(table["Фулл хаус"]===null){ let three=0,pair=0; for(let i=6;i>=1;i--){ if(c[i]==3) three=i; else if(c[i]==2) pair=i;} r["Фулл хаус"]=(three&&pair)?25:0; }
-  if(table["Малый стрит"]===null){ const u=[...new Set(d)].sort((a,b)=>a-b); const has=[[1,2,3,4],[2,3,4,5],[3,4,5,6]].some(seq=>seq.every(x=>u.includes(x))); r["Малый стрит"]=has?30:0; }
-  if(table["Большой стрит"]===null){ const has=[1,2,3,4,5].every(x=>d.includes(x))||[2,3,4,5,6].every(x=>d.includes(x)); r["Большой стрит"]=has?40:0; }
-  if(table["Ядзи"]===null){ r["Ядзи"]=Object.values(c).includes(5)?50:0; }
-  if(table["Шанс"]===null){ r["Шанс"]=d.reduce((a,b)=>a+b,0); } return r;
+    const pairCount = Object.values(d).reduce((sum, c) => sum + Math.floor(c / 2), 0);
+    res["Две пары"] = pairCount >= 2 ? dice.reduce((a,b)=>a+b,0) : 0;
+  }
+
+  // Сет (тройка)
+  if (table["Сет"] === null) {
+    res["Сет"] = 0;
+    for (let i = 6; i >= 1; i--) {
+      if (d[i] >= 3) { res["Сет"] = dice.reduce((a,b)=>a+b,0); break; }
+    }
+  }
+
+  // Каре
+  if (table["Каре"] === null) {
+    res["Каре"] = 0;
+    for (let i = 6; i >= 1; i--) {
+      if (d[i] >= 4) { res["Каре"] = dice.reduce((a,b)=>a+b,0); break; }
+    }
+  }
+
+  // Фулл хаус (3 + 2)
+  if (table["Фулл хаус"] === null) {
+    let has3 = false, has2 = false;
+    for (let i = 1; i <= 6; i++) {
+      if (d[i] === 3) has3 = true;
+      else if (d[i] === 2) has2 = true;
+    }
+    res["Фулл хаус"] = (has3 && has2) ? 25 : 0;
+  }
+
+  // Малый стрит (4 подряд)
+  if (table["Малый стрит"] === null) {
+    const u = [...new Set(dice)].sort((a,b)=>a-b);
+    const has = [[1,2,3,4],[2,3,4,5],[3,4,5,6]].some(seq => seq.every(x => u.includes(x)));
+    res["Малый стрит"] = has ? 30 : 0;
+  }
+
+  // Большой стрит (5 подряд)
+  if (table["Большой стрит"] === null) {
+    const has = [1,2,3,4,5].every(x => dice.includes(x)) ||
+                [2,3,4,5,6].every(x => dice.includes(x));
+    res["Большой стрит"] = has ? 40 : 0;
+  }
+
+  // Ядзи (пять одинаковых)
+  if (table["Ядзи"] === null) {
+    res["Ядзи"] = Object.values(d).includes(5) ? 50 : 0;
+  }
+
+  // Шанс
+  if (table["Шанс"] === null) {
+    res["Шанс"] = dice.reduce((a,b)=>a+b,0);
+  }
+
+  return res;
 }
 function drawTable(){
   // шапка таблицы
