@@ -97,6 +97,7 @@
   </style>
 </head>
 <body>
+  <div id="toast"></div>
   <div id="name-modal">
     <div class="card">
       <h2>Введите имя</h2>
@@ -139,6 +140,7 @@
     </div>
   </div>
 
+
   <div id="rules" class="tab-content">
   <div class="rules-box">
   <h2>Правила игры</h2>
@@ -171,8 +173,6 @@
   • Побеждает игрок с наибольшей суммой.<br>
   • В текущей версии партии могут состоять из нескольких раундов, а общая сумма считается по всем раундам.</p>
 </div>
-
-  <div id="toast"></div>
 
   <!-- Firebase compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -417,20 +417,45 @@ const db = firebase.database();
 
 function showToast(text){ const t=document.getElementById('toast'); t.textContent=text; t.style.display='block'; setTimeout(()=>t.style.display='none',1800); }
 
-async function saveScoreToFirebase(name, score){
-  const payload={ name, score, ts: Date.now() };
-  try { await db.ref('scores').push(payload); showToast('Результат сохранён!'); }
-  catch(e){ console.error('saveScore error', e); showToast('Не удалось сохранить. Проверь сеть и правила БД.'); }
-}
-
-// Кнопка "Сохранить результат"
 document.getElementById('save-btn').addEventListener('click', async ()=>{
   let name = playerName;
-  if (!name) { name = prompt('Введите имя игрока:'); if (!name) return; playerName = name; document.getElementById('name-modal').style.display='none'; }
+  if (!name) {
+    name = prompt('Введите имя игрока:');
+    if (!name) return;
+    playerName = name;
+    document.getElementById('name-modal').style.display='none';
+  }
+
   const current = getCurrentTotal();
-  if (current <= 0) { showToast('Сначала наиграй очки :)'); return; }
+  if (current <= 0) {
+    showToast('Сначала наиграй очки :)');
+    return;
+  }
+
+  // Порог: меньше 777 — не пишем
+  if (current < 777) {
+    showToast('Меньше 777 очков — не записываем в рекорды!');
+    return;
+  }
+
   await saveScoreToFirebase(name, current);
 });
+
+// Кнопка "Сохранить результат"
+async function saveScoreToFirebase(name, score){
+  if ((score|0) < 777) {
+    showToast('В рекорды записываем только от 777 очков.');
+    return;
+  }
+  const payload = { name, score, ts: Date.now() };
+  try {
+    await db.ref('scores').push(payload);
+    showToast('Результат сохранён!');
+  } catch(e) {
+    console.error('saveScore error', e);
+    showToast('Не удалось сохранить. Проверь сеть и правила БД.');
+  }
+}
 
 // ---------- Leaderboard: LIVE subscription (ключевое место) ----------
 let scoresSubscribed = false;
