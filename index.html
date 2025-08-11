@@ -376,11 +376,24 @@ function drawTable(){
   html += `</tr>`;
 
   // сумма всего (под "Итого за раунд")
-  const totalAll = roundTotals.reduce((a,b)=>a+b,0);
-  html += `<tr>
-    <td><b>Сумма всего</b></td>
-    <td colspan="3"><b>${totalAll}</b></td>
-  </tr>`;
+const totalAll = roundTotals.reduce((a,b)=>a+b,0);
+const remain = Math.max(bestScore - totalAll, 0);
+let extra = '';
+if (bestScore > 0) {
+  extra = remain > 0
+    ? `<div style="font-weight:normal;font-size:0.95em;color:#2980b9;margin-top:6px;">
+         Осталось до рекорда: <b>${remain}</b> (рекорд: ${bestScore})
+       </div>`
+    : (totalAll > 0
+        ? `<div style="font-weight:normal;font-size:0.95em;color:#27ae60;margin-top:6px;">
+             Это <b>рекорд!</b> (старый: ${bestScore})
+           </div>`
+        : '');
+}
+html += `<tr>
+  <td><b>Сумма всего</b></td>
+  <td colspan="3"><b>${totalAll}</b>${extra}</td>
+</tr>`;
 
   // рендер
   document.getElementById('score-table').innerHTML = html;
@@ -428,6 +441,25 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+
+// --- Рекорд ---
+let bestScore = 0;
+
+function subscribeBestScore() {
+  const top1Ref = db.ref('scores').orderByChild('score').limitToLast(1);
+  top1Ref.on('value', (snap) => {
+    let max = 0;
+    snap && snap.forEach(ch => {
+      const v = (ch.val().score | 0);
+      if (v > max) max = v;
+    });
+    bestScore = max;
+    // перерисуем таблицу, если уже выведена
+    const tableEl = document.getElementById('score-table');
+    if (tableEl && tableEl.innerHTML) drawTable();
+  });
+}
+subscribeBestScore();
 
 function showToast(text){ const t=document.getElementById('toast'); t.textContent=text; t.style.display='block'; setTimeout(()=>t.style.display='none',1800); }
 
