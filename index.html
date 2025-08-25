@@ -457,35 +457,26 @@ function GameController(suffix) {
     const arr = Object.entries(poss).filter(([k])=>this.scoreTable[k]===null);
     if (!arr.length) { this.elMoves.innerHTML=''; return; }
 
-    // Десктоп — оставляем мгновенный выбор (один клик)
-    if (!isCoarsePointer()) {
-      let html = "<b>Выбери куда записать:</b> ";
-      html += arr.map(([k,v]) => 
-        `<span class="available" onclick="window.__choose('${this.suffix}','${k}')">${k} <b>(${v})</b></span>`
-      ).join(' | ');
-      this.elMoves.innerHTML = html;
-      return;
-    }
+    // Десктоп — мгновенный выбор (span)
+if (!isCoarsePointer()) {
+  let html = "<b>Выбери куда записать:</b> ";
+  html += arr.map(([k,v]) => 
+    `<span class="available" onclick="window.__choose('${this.suffix}','${k}')">${k} <b>(${v})</b></span>`
+  ).join(' | ');
+  this.elMoves.innerHTML = html;
+  return;
+}
 
-    // Тач — делаем двухшаговый выбор: выделить → подтвердить
-    const options = arr.map(([k,v]) => {
-      const active = (this.pendingField === k) ? ' active' : '';
-      return `<button class="option-btn${active}" onclick="window.__selectOption('${this.suffix}','${k}')">${k} <b>(${v})</b></button>`;
-    }).join('');
+// Тач — такие же чипсы, но клик сразу пишет результат
+const options = arr.map(([k,v]) =>
+  `<button class="option-btn" onclick="window.__choose('${this.suffix}','${k}')">${k} <b>(${v})</b></button>`
+).join('');
 
-    const pendingText = this.pendingField 
-      ? `<span class="pending-chip">Выбрано: <b>${this.pendingField}</b></span>`
-      : `<span class="pending-chip">Нажми на вариант выше</span>`;
+this.elMoves.innerHTML = `
+  <div class="moves-title"><b>Выбери куда записать:</b></div>
+  <div class="moves-wrap">${options}</div>
+`;
 
-    this.elMoves.innerHTML = `
-      <div class="moves-title"><b>Выбери куда записать:</b></div>
-      <div class="moves-wrap">${options}</div>
-      <div class="confirm-bar">
-        ${pendingText}
-        <button class="btn" onclick="window.__confirmOption('${this.suffix}')" ${this.pendingField? '' : 'disabled'}>✅ Подтвердить</button>
-        <button class="btn" onclick="window.__cancelOption('${this.suffix}')">↩️ Отмена</button>
-      </div>
-    `;
   };
   this.hidePossibleMoves = () => { this.elMoves.innerHTML = ''; };
 
